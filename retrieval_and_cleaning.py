@@ -1,10 +1,30 @@
+import shutil
 from typing import Tuple, Dict, List
-
 import kagglehub
 import os
 import re
+from kagglehub import KaggleDatasetAdapter
 
-def get_books() -> Tuple[Dict, List]:
+path = ""
+
+
+def get_dialogues_dataset():
+
+    download_path = download_kaggle_dataset("shreyasur965/harry-potter-characters-with-dialogues")
+    print("Path to dataset files:", download_path)
+
+
+def get_characters_datasets():
+    """
+    Load the dataset that includes Characters.csv, Potions.csv, Spells.csv and more.
+    :return: df: Dataframe
+    """
+
+    download_path = download_kaggle_dataset("gulsahdemiryurek/harry-potter-dataset")
+    print("Path to dataset files:", download_path)
+
+
+def get_books_dataset() -> Tuple[Dict, List]:
     """
     A function that gets the Harry Potter books from Kaggle
     :return:
@@ -12,13 +32,16 @@ def get_books() -> Tuple[Dict, List]:
     names : A list with the book names
     """
     # Download latest version
-    path = kagglehub.dataset_download("shubhammaindola/harry-potter-books")
-    print("Path to dataset files:", path)
+
+    #TODO Fix the problem of chapters cleaning in books
+
+    download_path = download_kaggle_dataset("shubhammaindola/harry-potter-books")
+    print("Path to dataset files:", download_path)
     books = {}
     names = []
-    for file in os.listdir(path):
+    for file in os.listdir(download_path):
         if file.endswith(".txt"):
-            with open(os.path.join(path, file), "r", encoding="utf-8") as f:
+            with open(os.path.join(download_path, file), "r", encoding="utf-8") as f:
                 text = f.read()
                 print(f"\n=== {file} ===")
                 # print(text[:500])  # print the first 500 characters of each book
@@ -57,16 +80,19 @@ def get_chapters(book_text):
 
     # The first chapter is a little bit different since it doesnt have a title
     if matches[0].strip():
-        chapter_data.append(("CHAPTER ONE", matches[0].strip()))
+        # chapter_data.append(("CHAPTER ONE", matches[0].strip()))
+        chapter_content = fix_first_word_spacing(matches[0].strip())
+        chapter_data.append(chapter_content)
 
     for i in range(1, len(matches), 2):
+        subtitle = None
         chapter_title = matches[i].strip()  # CHAPTER ONE
         content = matches[i + 1].strip() if i + 1 < len(matches) else ""
-
         # Try to extract the line after the chapter (e.g., "THE JOURNEY FROM...")
         first_line = content.split('\n', 1)
         if len(first_line) == 2:
             subtitle, rest = first_line
+            # print(chapter_title, subtitle)
             # chapter_content = f"{chapter_title}\n{subtitle}\n\n{rest}"
             chapter_content = rest[3:]
         else:
@@ -75,7 +101,7 @@ def get_chapters(book_text):
 
         chapter_content = fix_first_word_spacing(chapter_content)
 
-        chapter_data.append((chapter_title, chapter_content))
+        chapter_data.append((chapter_title, subtitle, chapter_content))
 
 
     # ✅ Print preview
@@ -84,3 +110,48 @@ def get_chapters(book_text):
     #     print(content[:500])  # Just a preview
 
     return chapter_data
+
+
+def download_kaggle_dataset(handle_name):
+
+    """
+
+    :param handle_name:
+    :return:
+    """
+
+    # Checks if the folder Kaggle datasets exist and else creates it
+    folder_name = "Kaggle_datasets"
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+        print(f"Creating a folder for Kaggle datasets : {folder_name}")
+
+
+    dataset_name = handle_name.split("/")[-1]
+    destination_path = os.getcwd() + '\\' + folder_name + '\\' + dataset_name
+
+    if not os.path.exists(destination_path):
+        source_path = kagglehub.dataset_download(handle_name)
+
+        # print("Source path:", source_path)
+        # print("Destination path:", destination_path)
+
+        # 1. Create the folder name if needed
+        os.makedirs(os.path.dirname(destination_path), exist_ok=True)
+
+        # 2. Copy all the folder with all whats inside
+        shutil.copytree(source_path, destination_path)
+
+        # 3. Delete the source folder
+        shutil.rmtree(source_path)
+
+        print(f"Folder transferred from {source_path} to {destination_path}")
+
+    return destination_path
+
+
+if __name__ == "__main__":
+
+    get_books_dataset()
+    get_dialogues_dataset()
+    get_characters_datasets()
