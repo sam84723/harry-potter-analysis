@@ -1,4 +1,4 @@
-from retrieval_and_cleaning import get_books, get_chapters
+from retrieval_and_cleaning import get_books_dataset, get_chapters
 
 def book_sanity_check(book):
 
@@ -8,7 +8,7 @@ def book_sanity_check(book):
         pass
 
 def main():
-    hp_books, books_names = get_books()
+    hp_books, books_names = get_books_dataset()
     # print(hp_books[books_names[0]])
     first_book_chapters = get_chapters(hp_books[books_names[0]])
     print("here")
