@@ -12,16 +12,17 @@ def get_dialogues_dataset():
 
     download_path = download_kaggle_dataset("shreyasur965/harry-potter-characters-with-dialogues")
     print("Path to dataset files:", download_path)
+    return download_path
 
 
 def get_characters_datasets():
     """
     Load the dataset that includes Characters.csv, Potions.csv, Spells.csv and more.
-    :return: df: Dataframe
     """
 
     download_path = download_kaggle_dataset("gulsahdemiryurek/harry-potter-dataset")
     print("Path to dataset files:", download_path)
+    return download_path
 
 
 def get_books_dataset() -> Tuple[Dict, List]:
