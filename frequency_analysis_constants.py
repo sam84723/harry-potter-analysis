@@ -1,6 +1,6 @@
 
 HARRY_POTTER_COMPOUNDS = [
-    # Personnes/Entités
+    # People / Entities
     ("you know who", "you-know-who"),
     ("he who must not be named", "he_who_must_not_be_named"),
     # ("the boy who lived", "the_boy_who_lived"),
@@ -13,7 +13,7 @@ HARRY_POTTER_COMPOUNDS = [
     ("minister of magic", "minister_of_magic"),
     ("ministry of magic", "ministry_of_magic"),
 
-    # Lieux
+    # Places
     ("diagon alley", "diagon_alley"),
     ("knockturn alley", "knockturn_alley"),
     ("privet drive", "privet_drive"),
@@ -30,7 +30,7 @@ HARRY_POTTER_COMPOUNDS = [
     ("common room", "common_room"),
     ("quidditch pitch", "quidditch_pitch"),
 
-    # Objets magiques
+    # Magical objects
     ("elder wand", "elder_wand"),
     ("invisibility cloak", "invisibility_cloak"),
     ("philosopher's stone", "philosophers_stone"),
@@ -42,7 +42,7 @@ HARRY_POTTER_COMPOUNDS = [
     ("sorting hat", "sorting_hat"),
     ("howler letter", "howler_letter"),
 
-    # Sorts et magie
+    # Spells and magic
     ("avada kedavra", "avada_kedavra"),
     ("expecto patronum", "expecto_patronum"),
     # ("imperio curse", "imperio_curse"),
@@ -54,7 +54,7 @@ HARRY_POTTER_COMPOUNDS = [
     # ("dark magic", "dark_magic"),
     # ("defensive magic", "defensive_magic"),
 
-    # Créatures
+    # Creatures
     ("house elf", "house_elf"),
     ("house elves", "house_elves"),
     # ("dementor's kiss", "dementors_kiss"),
@@ -70,7 +70,7 @@ HARRY_POTTER_COMPOUNDS = [
     ("muggle world", "muggle_world"),
     ("magical education", "magical_education"),
 
-    # Expressions courantes
+    # Common expressions
     # ("all right", "all_right"),
     # ("over there", "over_there"),
     # ("right now", "right_now"),
@@ -81,7 +81,7 @@ HARRY_POTTER_COMPOUNDS = [
     # ("few seconds", "few_seconds"),
 ]
 
-# Stop words anglais communs
+# Common English stop words
 STOP_WORDS_GENERIC = {
     'a', 'an', 'the', 'and', 'or', 'but', 'if', 'while', 'as', 'because',
     'is', 'are', 'was', 'were', 'be', 'been', 'being',
@@ -109,7 +109,7 @@ STOP_WORDS_HP = {
     'never', 'ever',
     'now', 'then',
     'first', 'last', 'next',
-    'yeh', 'yer',  # particularités de Hagrid :)
+    'yeh', 'yer',  # Hagrid-specific speech patterns :)
     'yeah', 'oh', 'ah', 'uh'
 }
 
@@ -148,11 +148,21 @@ ALIASES = [
     ("the boy who lived", "harry"),
     ("the chosen one", "harry"),
 
+    # Ron Weasley
+    ("ron weasley", "ron"),
+    ("weasley", "ron"),
+
+    # Hermione Granger
+    ("hermione granger", "hermione"),
+    ("granger", "hermione"),
+
     # Albus Dumbledore
     ("albus dumbledore", "dumbledore"),
     ("professor dumbledore", "dumbledore"),
     ("headmaster", "dumbledore"),
     ("albus", "dumbledore"),
+
+
 
     # Severus Snape
     ("severus snape", "snape"),
@@ -184,6 +194,6 @@ ALIASES = [
     ("bellatrix lestrange", "bellatrix"),
     ("lestrange", "bellatrix"),
 
-    # Collectif Marauders
+    # Marauders collective
     ("the marauders", "marauders"),
 ]
