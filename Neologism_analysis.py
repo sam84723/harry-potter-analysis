@@ -304,7 +304,7 @@ def create_creative_chapters_plot(creative_chapters):
     plt.tight_layout()
     plt.show()
 
-def main():
+def main1():
     """Main function to run first chapters analysis"""
     print("Harry Potter First Chapters Neologisms Analysis")
     print("=" * 50)
@@ -347,5 +347,10 @@ def main():
     # Create visualization
     create_creative_chapters_plot(creative_chapters)
 
+def main2():
+    """Main function to run second chapters analysis"""
+
 if __name__ == "__main__":
-    main()
+    main1()
+
+    main2()

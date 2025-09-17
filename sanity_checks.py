@@ -87,14 +87,8 @@ def analyze_dialogues():
     Analyzes the dialogue dataset to find and plot the top 10 characters
     by their total number of words spoken.
     """
-    dialogue_path = get_dialogues_dataset()
-    dialogues_file = os.path.join(dialogue_path, 'harry_potter_characters_with_dialogues.csv')
-
-    try:
-        df = pd.read_csv(dialogues_file)
-    except FileNotFoundError:
-        print(f"Error: The file was not found at {dialogues_file}")
-        return
+    df = get_dialogues_dataset()
+    # dialogues_file = os.path.join(dialogue_path, 'harry_potter_characters_with_dialogues.csv')
 
     df['Number of Words'] = pd.to_numeric(df['Number of Words'], errors='coerce').fillna(0)
     total_word_counts = df.groupby('Character Name')['Number of Words'].sum()
@@ -126,9 +120,8 @@ def analyze_characters():
     1. Distribution of characters by house
     2. Blood status distribution
     """
-    characters_path = get_characters_datasets()
-    characters_file = os.path.join(characters_path, 'Characters.csv')
-    df = pd.read_csv(characters_file, sep=';')
+
+    df = get_characters_datasets()
 
     # Plot house distribution
     plt.figure(figsize=(10, 6))
