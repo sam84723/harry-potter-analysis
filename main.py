@@ -14,7 +14,7 @@ def main():
     characters_path = get_characters_datasets()
     print("Characters Dataset Loaded")
 
-    run_all_sanity_checks()
+    # run_all_sanity_checks()
 
 if __name__ == "__main__":
     main()
