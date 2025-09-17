@@ -7,32 +7,32 @@ from nltk.corpus import stopwords
 from frequency_analysis_constants import ALIASES, HARRY_POTTER_COMPOUNDS, STOP_WORDS_HP, STOP_WORDS_GENERIC, STOP_NAMES
 
 
-# Expressions multi-mots spécifiques à Harry Potter à traiter comme un seul mot
+# Harry Potter-specific multi-word expressions to treat as a single token
 
 
 def clean_and_tokenize(text: str) -> List[str]:
     """
-    Nettoie le texte et le tokenise en mots, en gérant les expressions composées
+    Clean the text and tokenize into words, handling compound expressions
     """
-    # Convertir en minuscules
+    # Convert to lowercase
     text = text.lower()
 
-    # Remplacer les expressions composées par leurs versions unifiées
+    # Replace compound expressions with their unified versions
     for original, replacement in HARRY_POTTER_COMPOUNDS:
         text = text.replace(original, replacement)
 
-    # Supprimer la ponctuation et garder seulement les lettres et underscores
+    # Remove punctuation, keep only letters and underscores
     text = re.sub(r'[^a-zA-Z_\s]', ' ', text)
 
-    # Séparer en mots
+    # Split into words
     words = text.split()
 
     STOP_WORDS = STOP_WORDS_GENERIC.union(STOP_WORDS_HP)
 
-    # Filtrer les mots vides et les mots trop courts (sauf les mots composés avec _)
+    # Filter stopwords and very short words (except compounds with _)
     filtered_words = []
     for word in words:
-        if '_' in word:  # C'est un mot composé, on le garde
+        if '_' in word:  # It's a compound word; keep it
             filtered_words.append(word)
         elif (word not in STOP_WORDS
               and word not in STOP_NAMES
@@ -44,15 +44,15 @@ def clean_and_tokenize(text: str) -> List[str]:
 
 def analyze_book_words(book_text: str, book_name: str, top_n: int = 50) -> Dict:
     """
-    Analyse les mots les plus fréquents dans un livre
+    Analyze the most frequent words in a single book
     """
-    # Nettoyer et tokeniser
+    # Clean and tokenize
     words = clean_and_tokenize(book_text)
 
-    # Compter les occurrences
+    # Count occurrences
     word_counts = Counter(words)
 
-    # Obtenir les mots les plus fréquents
+    # Get the most frequent words
     most_common = word_counts.most_common(top_n)
 
     return {
@@ -66,62 +66,62 @@ def analyze_book_words(book_text: str, book_name: str, top_n: int = 50) -> Dict:
 
 def analyze_all_books(books: Dict[str, str], top_n: int = 50) -> Dict[str, Dict]:
     """
-    Analyse tous les livres et retourne un dictionnaire avec les résultats
+    Analyze all books and return a dictionary of results
     """
     results = {}
 
     for book_file, book_text in books.items():
-        # print(f"Analyse de {book_file}...")
+        # print(f"Analyzing {book_file}...")
 
-        # Nettoyer le nom du livre
+        # Clean the book name
         book_name = book_file.replace('.txt', '').replace('_', ' ').title()
 
-        # Analyser le livre
+        # Analyze the book
         analysis = analyze_book_words(book_text, book_name, top_n)
         results[book_name] = analysis
 
-        # print(f"✅ {book_name}: {analysis['total_words']} mots, "
-        #       f"{analysis['unique_words']} mots uniques")
+        # print(f"✅ {book_name}: {analysis['total_words']} words, "
+        #       f"{analysis['unique_words']} unique words")
 
     return results
 
 
 def display_top_words(results: Dict[str, Dict], top_n: int = 20):
     """
-    Affiche les mots les plus fréquents pour chaque livre
+    Display the most frequent words for each book
     """
     for book_name, analysis in results.items():
         print(f"\n{'=' * 60}")
         print(f"📚 {book_name}")
         print(f"{'=' * 60}")
-        print(f"Total de mots analysés: {analysis['total_words']:,}")
-        print(f"Mots uniques: {analysis['unique_words']:,}")
-        print(f"\nTop {top_n} mots les plus fréquents:")
+        print(f"Total words analyzed: {analysis['total_words']:,}")
+        print(f"Unique words: {analysis['unique_words']:,}")
+        print(f"\nTop {top_n} most frequent words:")
         print("-" * 40)
 
         for i, (word, count) in enumerate(analysis['most_common_words'][:top_n], 1):
             percentage = (count / analysis['total_words']) * 100
-            # Formater l'affichage des mots composés
+            # Format display of compound words
             display_word = word.replace('_', ' ').title() if '_' in word else word
             print(f"{i:2d}. {display_word:<20} : {count:4d} ({percentage:.2f}%)")
 
 
 def create_comparison_dataframe(results: Dict[str, Dict], top_n: int = 20) -> pd.DataFrame:
     """
-    Crée un DataFrame pour comparer les mots les plus fréquents entre les livres
+    Create a DataFrame to compare the most frequent words across books
     """
     all_data = []
 
     for book_name, analysis in results.items():
         for rank, (word, count) in enumerate(analysis['most_common_words'][:top_n], 1):
             percentage = (count / analysis['total_words']) * 100
-            # Créer une version lisible du mot pour le DataFrame
+            # Create a human-readable version of the word for the DataFrame
             display_word = word.replace('_', ' ').title() if '_' in word else word
             all_data.append({
                 'book': book_name,
                 'rank': rank,
-                'word': word,  # Version technique pour les analyses
-                'display_word': display_word,  # Version lisible
+                'word': word,  # Technical token for analysis
+                'display_word': display_word,  # Readable version
                 'count': count,
                 'percentage': percentage,
                 'total_words_in_book': analysis['total_words']
@@ -132,50 +132,49 @@ def create_comparison_dataframe(results: Dict[str, Dict], top_n: int = 20) -> pd
 
 def find_common_words_across_books(results: Dict[str, Dict], min_books: int = 3) -> List[Tuple[str, int]]:
     """
-    Trouve les mots qui apparaissent fréquemment dans plusieurs livres
+    Find words that frequently appear across multiple books
     """
     word_book_count = Counter()
 
-    # Compter dans combien de livres chaque mot apparaît dans le top 50
+    # Count in how many books each word appears in the top-N
     for book_name, analysis in results.items():
         top_words = [word for word, count in analysis['most_common_words']]
         for word in top_words:
             word_book_count[word] += 1
 
-    # Filtrer les mots qui apparaissent dans au moins min_books livres
+    # Keep words that appear in at least min_books
     common_words = [(word, count) for word, count in word_book_count.items()
                     if count >= min_books]
 
     return sorted(common_words, key=lambda x: x[1], reverse=True)
 
 
-# Fonction principale pour l'analyse complète
 def run_word_analysis(books: Dict[str, str], top_n: int = 50):
     """
-    Lance l'analyse complète des mots
+    Run the complete word analysis pipeline
     """
-    print("🔍 Début de l'analyse des mots les plus fréquents...")
-    print(f"📝 Expressions composées reconnues : {len(HARRY_POTTER_COMPOUNDS)}")
+    print("🔍 Starting analysis of the most frequent words...")
+    print(f"📝 Recognized compound expressions: {len(HARRY_POTTER_COMPOUNDS)}")
 
-    # Analyser tous les livres
+    # Analyze all books
     results = analyze_all_books(books, top_n)
 
-    # Afficher les résultats
+    # Display results
     display_top_words(results, top_n)
 
-    # Créer un DataFrame pour analyse plus poussée
+    # Create a DataFrame for deeper analysis
     df_comparison = create_comparison_dataframe(results, top_n)
 
-    # Trouver les mots communs
+    # Find common words
     common_words = find_common_words_across_books(results, min_books=3)
 
     print(f"\n{'=' * 60}")
-    print("🔗 Mots fréquents communs à plusieurs livres:")
+    print("🔗 Frequent words common to multiple books:")
     print(f"{'=' * 60}")
     for word, book_count in common_words[:15]:
-        # Formater l'affichage des mots composés
+        # Format display of compound words
         display_word = word.replace('_', ' ').title() if '_' in word else word
-        print(f"{display_word:<20} : présent dans {book_count} livres")
+        print(f"{display_word:<20} : present in {book_count} books")
 
     return results, df_comparison
 
@@ -249,7 +248,7 @@ def find_frequency_of_the_word(search_term: str, books):
     return results
 
 
-# Exemple d'utilisation avec ton code existant
+# Example usage with your existing code
 if __name__ == "__main__":
 
     from retrieval_and_cleaning import get_books_dataset
@@ -259,9 +258,9 @@ if __name__ == "__main__":
 
     # results, df_comparison = run_word_analysis(books, 50)
 
-    # # Optionnel: save the results
+    # # Optional: save the results
     # df_comparison.to_csv('harry_potter_word_analysis.csv', index=False)
-    # print("\n💾 Résults saved in 'harry_potter_word_analysis.csv'")
+    # print("\n💾 Results saved in 'harry_potter_word_analysis.csv'")
 
     # ----------------------- Finding frequency per words --------------------------------------
 
