@@ -134,6 +134,7 @@ STOP_NAMES = {
 ALIASES = [
     # Voldemort
     ("lord voldemort", "voldemort"),
+    ("lord voldemort", "lord_voldemort"),
     ("tom riddle", "voldemort"),
     ("tom marvolo riddle", "voldemort"),
     ("the dark lord", "voldemort"),

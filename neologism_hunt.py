@@ -256,6 +256,8 @@ def detect_neologisms(books: Dict[str, str], min_frequency: int = 2) -> Dict:
             elif (word not in english_dict and
                   word not in exclusions and
                   is_likely_neologism(word, english_dict)):
+                # if word == "liberacorpus":
+                #     print("liberacorpus")
                 neologisms[word] = count
             else:
                 false_positives += 1
@@ -387,6 +389,323 @@ def categorize_neologisms(neologisms: Dict[str, int]) -> Dict[str, List[str]]:
     return {k: v for k, v in categories.items() if v}
 
 
+def detect_similar_neologisms(neologisms: Dict[str, int], similarity_threshold: float = 0.8,
+                              decisions_file: str = "neologism_merge_decisions.json") -> Dict:
+    """Detects similar neologisms and asks for user confirmation to merge them"""
+    from difflib import SequenceMatcher
+    import json
+    import os
+
+    def similarity(a, b):
+        return SequenceMatcher(None, a.lower(), b.lower()).ratio()
+
+    # Load existing decisions
+    saved_decisions = {}
+    if os.path.exists(decisions_file):
+        try:
+            with open(decisions_file, 'r', encoding='utf-8') as f:
+                saved_decisions = json.load(f)
+            print(f"Loaded {len(saved_decisions)} saved merge decisions")
+        except Exception as e:
+            print(f"Error loading decisions file: {e}")
+
+    neologism_list = list(neologisms.keys())
+    similar_groups = []
+    processed = set()
+
+    print("Detecting similar neologisms...")
+
+    # Find similar groups
+    for i, word1 in enumerate(neologism_list):
+        if word1 in processed:
+            continue
+
+        similar_words = [word1]
+        for j, word2 in enumerate(neologism_list[i + 1:], i + 1):
+            if word2 in processed:
+                continue
+
+            sim_score = similarity(word1, word2)
+            if sim_score >= similarity_threshold:
+                similar_words.append(word2)
+                processed.add(word2)
+
+        if len(similar_words) > 1:
+            similar_groups.append(similar_words)
+        processed.add(word1)
+
+    merged_neologisms = dict(neologisms)
+    merge_decisions = {}
+    new_decisions_made = False
+
+    for group in similar_groups:
+        # Create a sorted key for this group to check against saved decisions
+        group_key = tuple(sorted(group))
+
+        # Check if we already have a decision for this group
+        saved_choice = None
+        for saved_key, saved_data in saved_decisions.items():
+            saved_group = tuple(sorted(saved_data.get('original_group', [])))
+            if group_key == saved_group:
+                saved_choice = saved_data
+                break
+
+        if saved_choice:
+            # Apply saved decision
+            canonical = saved_choice['canonical']
+            action = saved_choice['action']
+
+            if action in ['merge', 'manual']:
+                if canonical in group:  # Make sure canonical word still exists
+                    total_count = sum(neologisms[word] for word in group if word in neologisms)
+
+                    for word in group:
+                        if word != canonical and word in merged_neologisms:
+                            del merged_neologisms[word]
+
+                    if canonical in merged_neologisms:
+                        merged_neologisms[canonical] = total_count
+
+                    merge_decisions[canonical] = group
+                    print(f"Applied saved decision: merged {group} into {canonical}")
+                else:
+                    print(f"Warning: saved canonical '{canonical}' not found in current group {group}")
+            else:  # action == 'separate'
+                print(f"Applied saved decision: keeping {group} separate")
+
+            continue
+
+        # No saved decision found, ask user
+        print(f"\nSimilar words found:")
+        for i, word in enumerate(group):
+            count = neologisms.get(word, 0)
+            print(f"  {i + 1}. {word} ({count} occurrences)")
+
+        # Show similarity matrix
+        print("\nSimilarity scores:")
+        for i, word1 in enumerate(group):
+            for j, word2 in enumerate(group[i + 1:], i + 1):
+                sim_score = similarity(word1, word2)
+                print(f"  {word1} <-> {word2}: {sim_score:.2f}")
+
+        print("\nOptions:")
+        print("  m - Merge all into most frequent word")
+        print("  s - Keep all separate")
+        print("  c - Choose canonical form manually")
+        print("  p - Partial merge (select which words to merge)")
+
+        choice = input("Your choice (m/s/c/p): ").lower().strip()
+
+        decision_data = {
+            'original_group': group,
+            'action': 'separate',
+            'canonical': None
+        }
+
+        if choice == 'm':
+            canonical = max(group, key=lambda x: neologisms.get(x, 0))
+            total_count = sum(neologisms[word] for word in group)
+
+            for word in group:
+                if word != canonical:
+                    del merged_neologisms[word]
+            merged_neologisms[canonical] = total_count
+
+            merge_decisions[canonical] = group
+            decision_data.update({
+                'action': 'merge',
+                'canonical': canonical
+            })
+            print(f"Merged into: {canonical} ({total_count} total occurrences)")
+
+        elif choice == 'c':
+            print("Choose canonical form:")
+            for i, word in enumerate(group):
+                print(f"  {i + 1}. {word}")
+
+            try:
+                choice_idx = int(input("Enter number: ")) - 1
+                if 0 <= choice_idx < len(group):
+                    canonical = group[choice_idx]
+                    total_count = sum(neologisms[word] for word in group)
+
+                    for word in group:
+                        if word != canonical:
+                            del merged_neologisms[word]
+                    merged_neologisms[canonical] = total_count
+
+                    merge_decisions[canonical] = group
+                    decision_data.update({
+                        'action': 'manual',
+                        'canonical': canonical
+                    })
+                    print(f"Merged into: {canonical} ({total_count} total occurrences)")
+                else:
+                    print("Invalid choice, keeping separate")
+            except ValueError:
+                print("Invalid input, keeping separate")
+
+        elif choice == 'p':
+            print("Select words to merge together:")
+            print("Enter numbers separated by commas (e.g., 1,3 to merge words 1 and 3)")
+            print("You can make multiple groups by using semicolons (e.g., 1,2;3,4)")
+
+            selection = input("Your selection: ").strip()
+
+            try:
+                # Parse the selection
+                merge_groups = []
+                if ';' in selection:
+                    # Multiple groups
+                    for group_sel in selection.split(';'):
+                        indices = [int(x.strip()) - 1 for x in group_sel.split(',')]
+                        if all(0 <= idx < len(group) for idx in indices) and len(indices) > 1:
+                            merge_groups.append([group[idx] for idx in indices])
+                else:
+                    # Single group
+                    indices = [int(x.strip()) - 1 for x in selection.split(',')]
+                    if all(0 <= idx < len(group) for idx in indices) and len(indices) > 1:
+                        merge_groups.append([group[idx] for idx in indices])
+
+                if merge_groups:
+                    # Process each merge group
+                    for merge_group in merge_groups:
+                        canonical = max(merge_group, key=lambda x: neologisms.get(x, 0))
+                        total_count = sum(neologisms[word] for word in merge_group)
+
+                        for word in merge_group:
+                            if word != canonical and word in merged_neologisms:
+                                del merged_neologisms[word]
+
+                        if canonical in merged_neologisms:
+                            merged_neologisms[canonical] = total_count
+
+                        merge_decisions[canonical] = merge_group
+                        print(f"Merged {merge_group} into: {canonical}")
+
+                    # Save partial merge decision
+                    decision_data.update({
+                        'action': 'partial',
+                        'merge_groups': merge_groups
+                    })
+                else:
+                    print("Invalid selection, keeping separate")
+
+            except (ValueError, IndexError):
+                print("Invalid input, keeping separate")
+
+        else:  # choice == 's' or invalid
+            print("Keeping words separate")
+
+        # Save this decision
+        group_key_str = '|'.join(sorted(group))
+        saved_decisions[group_key_str] = decision_data
+        new_decisions_made = True
+
+    # Save decisions if any new ones were made
+    if new_decisions_made:
+        try:
+            with open(decisions_file, 'w', encoding='utf-8') as f:
+                json.dump(saved_decisions, f, indent=2, ensure_ascii=False)
+            print(f"Saved decisions to {decisions_file}")
+        except Exception as e:
+            print(f"Error saving decisions: {e}")
+
+    return {
+        'merged_neologisms': merged_neologisms,
+        'merge_decisions': merge_decisions,
+        'original_count': len(neologisms),
+        'final_count': len(merged_neologisms)
+    }
+
+
+def filter_false_neologisms(neologisms: Dict[str, int],
+                            blacklist_file: str = "neologism_blacklist.json") -> Dict[str, int]:
+    """Allows user to mark words as non-neologisms and saves the blacklist"""
+    import json
+    import os
+
+    # Load existing blacklist
+    blacklist = set()
+    if os.path.exists(blacklist_file):
+        try:
+            with open(blacklist_file, 'r', encoding='utf-8') as f:
+                blacklist = set(json.load(f))
+            print(f"Loaded blacklist with {len(blacklist)} words")
+        except Exception as e:
+            print(f"Error loading blacklist: {e}")
+
+    # Filter out already blacklisted words
+    initial_count = len(neologisms)
+    filtered_neologisms = {word: count for word, count in neologisms.items()
+                           if word.lower() not in blacklist}
+
+    if len(filtered_neologisms) < initial_count:
+        removed_count = initial_count - len(filtered_neologisms)
+        print(f"Automatically filtered {removed_count} blacklisted words")
+
+    # Show top neologisms for review
+    print("\nReviewing detected neologisms...")
+    sorted_neologisms = sorted(filtered_neologisms.items(), key=lambda x: x[1], reverse=True)
+
+    # Show in batches of 20
+    batch_size = 20
+    new_blacklist_words = set()
+
+    for i in range(0, len(sorted_neologisms), batch_size):
+        batch = sorted_neologisms[i:i + batch_size]
+
+        print(f"\nBatch {i // batch_size + 1} (words {i + 1}-{min(i + batch_size, len(sorted_neologisms))}):")
+        for j, (word, count) in enumerate(batch, i + 1):
+            print(f"  {j:2d}. {word:<20} ({count} occurrences)")
+
+        print("\nOptions:")
+        print("  r - Remove words from this batch (enter numbers)")
+        print("  n - Next batch")
+        print("  s - Skip remaining batches")
+
+        choice = input("Your choice (r/n/s): ").lower().strip()
+
+        if choice == 'r':
+            remove_input = input("Enter word numbers to remove (e.g., 1,3,5): ").strip()
+            try:
+                indices_to_remove = [int(x.strip()) for x in remove_input.split(',')]
+                for idx in indices_to_remove:
+                    if i + 1 <= idx <= min(i + batch_size, len(sorted_neologisms)):
+                        word_to_remove = sorted_neologisms[idx - 1][0]
+                        new_blacklist_words.add(word_to_remove.lower())
+                        print(f"Marked '{word_to_remove}' for removal")
+                    else:
+                        print(f"Invalid index: {idx}")
+            except ValueError:
+                print("Invalid input format")
+
+        elif choice == 's':
+            break
+        # For 'n' or any other input, just continue to next batch
+
+    # Remove blacklisted words
+    for word in list(filtered_neologisms.keys()):
+        if word.lower() in new_blacklist_words:
+            del filtered_neologisms[word]
+
+    # Update and save blacklist
+    if new_blacklist_words:
+        blacklist.update(new_blacklist_words)
+        try:
+            with open(blacklist_file, 'w', encoding='utf-8') as f:
+                json.dump(sorted(list(blacklist)), f, indent=2, ensure_ascii=False)
+            print(f"Added {len(new_blacklist_words)} words to blacklist")
+            print(f"Blacklist saved to {blacklist_file}")
+        except Exception as e:
+            print(f"Error saving blacklist: {e}")
+
+    final_count = len(filtered_neologisms)
+    if final_count < initial_count:
+        print(f"Filtered neologisms: {initial_count} -> {final_count}")
+
+    return filtered_neologisms
+
 def create_visualization(timeline_data: Dict, save_path: str = "neologisms_by_book.png"):
     """Creates a visualization of neologism introduction by book"""
     try:
@@ -462,11 +781,12 @@ def display_results(neologism_results: Dict, timeline_data: Dict):
     print(f"Total unique neologisms: {neologism_results['total_unique_neologisms']}")
 
     # Top neologisms
-    print(f"\nTop 200 neologisms with first appearance:")
+    print(f"\nTop 500 neologisms with first appearance:")
     sorted_neologisms = sorted(neologism_results['all_neologisms'].items(),
                                key=lambda x: x[1], reverse=True)
 
-    for i, (word, count) in enumerate(sorted_neologisms[:500], 1):
+    # for i, (word, count) in enumerate(sorted_neologisms[:500], 1):
+    for i, (word, count) in enumerate(sorted_neologisms[:], 1):
         first_info = timeline_data['first_appearances'].get(word, ("Unknown", 0, ""))
         book, chapter, title = first_info
         book_short = book.replace('Harry Potter And The ', '').replace('01 ', '').replace('02 ', '').replace('03 ',
@@ -492,11 +812,11 @@ def display_results(neologism_results: Dict, timeline_data: Dict):
         print(f"  • {book}: {count} new neologisms")
 
     # Top creative chapters
-    print(f"\nTop 5 most creative chapters:")
+    print(f"\nTop 7 most creative chapters:")
     sorted_timeline = sorted(timeline_data['evolution_timeline'],
                              key=lambda x: x['count'], reverse=True)
 
-    for i, entry in enumerate(sorted_timeline[:5], 1):
+    for i, entry in enumerate(sorted_timeline[:7], 1):
         print(f"{i}. {entry['book']} - Ch.{entry['chapter']}: {entry['count']} new words")
         top_words = sorted(entry['new_neologisms'],
                            key=lambda x: neologism_results['all_neologisms'].get(x, 0),
@@ -512,6 +832,20 @@ def run_complete_analysis(books: Dict[str, str], get_chapters_func,
     # Detect neologisms
     neologism_results = detect_neologisms(books, min_frequency)
 
+    # Filter false neologisms
+    print("\nStep 1: Filtering false neologisms...")
+    filtered_neologisms = filter_false_neologisms(neologism_results['all_neologisms'])
+    neologism_results['all_neologisms'] = filtered_neologisms
+    neologism_results['total_unique_neologisms'] = len(filtered_neologisms)
+
+    # Detect and handle similar neologisms
+    print("\nStep 2: Detecting similar neologisms...")
+    similarity_results = detect_similar_neologisms(neologism_results['all_neologisms'])
+    if similarity_results['merge_decisions']:
+        print(f"\nMerged {similarity_results['original_count']} -> {similarity_results['final_count']} neologisms")
+        neologism_results['all_neologisms'] = similarity_results['merged_neologisms']
+        neologism_results['total_unique_neologisms'] = len(similarity_results['merged_neologisms'])
+
     # Analyze introduction timeline
     timeline_data = analyze_introduction_timeline(
         books, get_chapters_func, set(neologism_results['all_neologisms'].keys())
@@ -524,7 +858,7 @@ def run_complete_analysis(books: Dict[str, str], get_chapters_func,
     create_visualization(timeline_data)
 
     # # Categorize neologisms
-    # categories = categorize_neologisms(neologism_results['all_neologisms'])
+    categories = categorize_neologisms(neologism_results['all_neologisms'])
     # print(f"\nTop neologisms by category:")
     # for category, words in categories.items():
     #     if words:
@@ -533,36 +867,36 @@ def run_complete_analysis(books: Dict[str, str], get_chapters_func,
     #                               key=lambda x: neologism_results['all_neologisms'].get(x, 0),
     #                               reverse=True)
     #         print(f"  Top 5: {', '.join(sorted_words[:5])}")
-    #
-    # # Create DataFrames for export
-    # if save_results:
-    #     frequency_data = []
-    #     for word, count in neologism_results['all_neologisms'].items():
-    #         category = "others"
-    #         for cat, words in categories.items():
-    #             if word in words:
-    #                 category = cat
-    #                 break
-    #
-    #         first_book, first_chapter, chapter_title = timeline_data['first_appearances'].get(
-    #             word, ("Unknown", 0, "Unknown")
-    #         )
-    #
-    #         frequency_data.append({
-    #             'neologism': word,
-    #             'total_frequency': count,
-    #             'category': category,
-    #             'first_book': first_book,
-    #             'first_chapter': first_chapter,
-    #             'chapter_title': chapter_title
-    #         })
-    #
-    #     df = pd.DataFrame(frequency_data)
-    #     df.to_csv('harry_potter_neologisms.csv', index=False)
-    #
-    #     print(f"\nFiles saved:")
-    #     print(f"  • harry_potter_neologisms.csv")
-    #     print(f"  • neologisms_by_book.png")
+
+    # Create DataFrames for export
+    if save_results:
+        frequency_data = []
+        for word, count in neologism_results['all_neologisms'].items():
+            category = "others"
+            for cat, words in categories.items():
+                if word in words:
+                    category = cat
+                    break
+
+            first_book, first_chapter, chapter_title = timeline_data['first_appearances'].get(
+                word, ("Unknown", 0, "Unknown")
+            )
+
+            frequency_data.append({
+                'neologism': word,
+                'total_frequency': count,
+                'category': category,
+                'first_book': first_book,
+                'first_chapter': first_chapter,
+                'chapter_title': chapter_title
+            })
+
+        df = pd.DataFrame(frequency_data)
+        df.to_csv('harry_potter_neologisms.csv', index=False)
+
+        print(f"\nFiles saved:")
+        print(f"  • harry_potter_neologisms.csv")
+        # print(f"  • neologisms_by_book.png")
 
     return neologism_results, timeline_data
 
@@ -574,7 +908,7 @@ if __name__ == "__main__":
     books, names = get_books_dataset()
 
     neologism_results, timeline_data = run_complete_analysis(
-        books, get_chapters, min_frequency=3, save_results=True
+        books, get_chapters, min_frequency=2, save_results=True
     )
 
     print(f"\nFINAL STATISTICS:")

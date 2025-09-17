@@ -185,15 +185,24 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
 
-def find_frequency_of_the_word(target_word: str, books):
+def find_frequency_of_the_word(search_term: str, books):
     """
     Count the frequency of a target word (including its aliases) in each book
     and display a graph of its occurrences across the series.
 
     :param target_word: the main word ("voldemort", "harry", etc.)
     :param books: dict {filename: text}
-    :param aliases: list of tuples (alias, replacement)
+
+    Note If you are looking for a group of words, update the alias list
+    e.g : Search = lord voldemort -> ("lord voldemort", "lord_voldemort"),
     """
+
+    temp = search_term.split()
+    if len(temp) > 1:
+        target_word = search_term.replace(' ', '_')
+    else:
+        target_word = search_term
+
     results = {}
 
     for book_file, book_text in books.items():
@@ -204,8 +213,11 @@ def find_frequency_of_the_word(target_word: str, books):
 
         # Replace all aliases with the main target word
         for original, replacement in ALIASES:
-            if replacement == target_word:
-                text = text.replace(original.lower(), replacement.lower())
+            # if (replacement == target_word and target_word != original): # if the word we are looking shouldnt be changed
+            if target_word == original: continue
+
+            if target_word == replacement:
+                text = text.replace(original, replacement)
 
         # Remove punctuation (keep only letters and underscores)
         text = re.sub(r'[^a-zA-Z_\s]', ' ', text)
@@ -226,7 +238,7 @@ def find_frequency_of_the_word(target_word: str, books):
 
     plt.figure(figsize=(10, 6))
     plt.plot(book_names, counts, marker="o", linestyle="-", linewidth=2)
-    plt.title(f"Frequency of '{target_word}' across the books", fontsize=14)
+    plt.title(f"Frequency of '{search_term}' across the books", fontsize=14)
     plt.xlabel("Book", fontsize=12)
     plt.ylabel("Occurrences", fontsize=12)
     plt.xticks(rotation=45, ha="right")
@@ -239,22 +251,20 @@ def find_frequency_of_the_word(target_word: str, books):
 
 # Exemple d'utilisation avec ton code existant
 if __name__ == "__main__":
-    # Utilise tes fonctions existantes
-    from retrieval_and_cleaning import get_books_dataset  # Remplace par le nom de ton fichier
 
+    from retrieval_and_cleaning import get_books_dataset
     books, names = get_books_dataset()
 
     # ------------------------ Dataset cleaning and frequency retrieval --------------------------------
 
     # results, df_comparison = run_word_analysis(books, 50)
 
-    # # Optionnel: sauvegarder les résultats
+    # # Optionnel: save the results
     # df_comparison.to_csv('harry_potter_word_analysis.csv', index=False)
-    # print("\n💾 Résultats sauvegardés dans 'harry_potter_word_analysis.csv'")
+    # print("\n💾 Résults saved in 'harry_potter_word_analysis.csv'")
 
     # ----------------------- Finding frequency per words --------------------------------------
 
-    # find_frequency_of_the_word("harry", books)
+    find_frequency_of_the_word("harry", books)
     find_frequency_of_the_word("voldemort", books)
-
-    # TODO enlarge the function to accept all version of a name
+    # find_frequency_of_the_word("lord voldemort", books)
