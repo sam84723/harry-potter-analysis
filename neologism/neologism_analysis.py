@@ -304,53 +304,222 @@ def create_creative_chapters_plot(creative_chapters):
     plt.tight_layout()
     plt.show()
 
-def main1():
-    """Main function to run first chapters analysis"""
-    print("Harry Potter First Chapters Neologisms Analysis")
-    print("=" * 50)
+
+def create_wordclouds_by_book(df, save_images=False):
+    """Create word clouds for neologisms by book with fixed colors"""
+    try:
+        from wordcloud import WordCloud
+        import matplotlib.pyplot as plt
+
+        # Define fixed colors for each book
+        book_colors = {
+            '01 Harry Potter And The Sorcerers Stone': '#8B0000',  # Dark red
+            '02 Harry Potter And The Chamber Of Secrets': '#228B22',  # Forest green
+            '03 Harry Potter And The Prisoner Of Azkaban': '#4169E1',  # Royal blue
+            '04 Harry Potter And The Goblet Of Fire': '#FF4500',  # Orange red
+            '05 Harry Potter And The Order Of The Phoenix': '#8A2BE2',  # Blue violet
+            '06 Harry Potter And The Half-Blood Prince': '#2F4F4F',  # Dark slate gray
+            '07 Harry Potter And The Deathly Hallows': '#800080'  # Purple
+        }
+
+        # Group neologisms by book
+        book_neologisms = {}
+
+        for _, row in df.iterrows():
+            book = row['first_book']
+            neologism = row['neologism']
+            frequency = row['total_frequency']
+
+            if book not in book_neologisms:
+                book_neologisms[book] = {}
+            book_neologisms[book][neologism] = frequency
+
+        # Create subplots for all word clouds
+        fig, axes = plt.subplots(3, 3, figsize=(18, 16))
+        fig.suptitle('Neologisms Word Clouds by Book', fontsize=20, fontweight='bold')
+
+        # Flatten axes for easier indexing
+        axes_flat = axes.flatten()
+
+        book_order = [
+            '01 Harry Potter And The Sorcerers Stone',
+            '02 Harry Potter And The Chamber Of Secrets',
+            '03 Harry Potter And The Prisoner Of Azkaban',
+            '04 Harry Potter And The Goblet Of Fire',
+            '05 Harry Potter And The Order Of The Phoenix',
+            '06 Harry Potter And The Half-Blood Prince',
+            '07 Harry Potter And The Deathly Hallows'
+        ]
+
+        for i, book in enumerate(book_order):
+            if book in book_neologisms and book_neologisms[book]:
+                # Create word cloud with fixed color
+                base_color = book_colors[book]
+
+                def color_func(word, font_size, position, orientation, random_state=None, **kwargs):
+                    return base_color
+
+                wordcloud = WordCloud(
+                    width=400,
+                    height=300,
+                    background_color='white',
+                    color_func=color_func,
+                    max_words=50,
+                    relative_scaling=0.5,
+                    random_state=42
+                ).generate_from_frequencies(book_neologisms[book])
+
+                # Plot word cloud
+                axes_flat[i].imshow(wordcloud, interpolation='bilinear')
+                axes_flat[i].axis('off')
+
+                # Add title
+                book_short = book.replace('Harry Potter And The ', '').replace('01 ', '').replace('02 ', '').replace(
+                    '03 ', '').replace('04 ', '').replace('05 ', '').replace('06 ', '').replace('07 ', '')
+                axes_flat[i].set_title(f'{book_short}\n({len(book_neologisms[book])} neologisms)',
+                                       fontsize=12, fontweight='bold', pad=10)
+            else:
+                # Empty plot for missing data
+                axes_flat[i].text(0.5, 0.5, 'No data', ha='center', va='center',
+                                  fontsize=16, transform=axes_flat[i].transAxes)
+                axes_flat[i].axis('off')
+
+        # Hide remaining subplots
+        for j in range(len(book_order), len(axes_flat)):
+            axes_flat[j].axis('off')
+
+        plt.tight_layout()
+
+        if save_images:
+            plt.savefig('neologisms_wordclouds_by_book.png', dpi=300, bbox_inches='tight')
+            print("Word clouds saved as: neologisms_wordclouds_by_book.png")
+        else:
+            plt.show()
+
+        return True
+
+    except ImportError:
+        print("WordCloud library not installed. Install with: pip install wordcloud")
+        return False
+    except Exception as e:
+        print(f"Error creating word clouds: {e}")
+        return False
+
+
+def create_individual_wordclouds(df, save_images=False):
+    """Create individual word cloud for each book in separate windows"""
+    try:
+        from wordcloud import WordCloud
+        import matplotlib.pyplot as plt
+
+        # Define fixed colors for each book
+        book_colors = {
+            '01 Harry Potter And The Sorcerers Stone': '#8B0000',
+            '02 Harry Potter And The Chamber Of Secrets': '#228B22',
+            '03 Harry Potter And The Prisoner Of Azkaban': '#4169E1',
+            '04 Harry Potter And The Goblet Of Fire': '#FF4500',
+            '05 Harry Potter And The Order Of The Phoenix': '#8A2BE2',
+            '06 Harry Potter And The Half-Blood Prince': '#2F4F4F',
+            '07 Harry Potter And The Deathly Hallows': '#800080'
+        }
+
+        # Group neologisms by book
+        book_neologisms = {}
+
+        for _, row in df.iterrows():
+            book = row['first_book']
+            neologism = row['neologism']
+            frequency = row['total_frequency']
+
+            if book not in book_neologisms:
+                book_neologisms[book] = {}
+            book_neologisms[book][neologism] = frequency
+
+        book_order = [
+            '01 Harry Potter And The Sorcerers Stone',
+            '02 Harry Potter And The Chamber Of Secrets',
+            '03 Harry Potter And The Prisoner Of Azkaban',
+            '04 Harry Potter And The Goblet Of Fire',
+            '05 Harry Potter And The Order Of The Phoenix',
+            '06 Harry Potter And The Half-Blood Prince',
+            '07 Harry Potter And The Deathly Hallows'
+        ]
+
+        for book in book_order:
+            if book in book_neologisms and book_neologisms[book]:
+                # Create individual word cloud
+                base_color = book_colors[book]
+
+                def color_func(word, font_size, position, orientation, random_state=None, **kwargs):
+                    return base_color
+
+                wordcloud = WordCloud(
+                    width=800,
+                    height=600,
+                    background_color='white',
+                    color_func=color_func,
+                    max_words=100,
+                    relative_scaling=0.5,
+                    random_state=42
+                ).generate_from_frequencies(book_neologisms[book])
+
+                # Create individual plot
+                plt.figure(figsize=(12, 8))
+                plt.imshow(wordcloud, interpolation='bilinear')
+                plt.axis('off')
+
+                book_short = book.replace('Harry Potter And The ', '').replace('01 ', '').replace('02 ', '').replace(
+                    '03 ', '').replace('04 ', '').replace('05 ', '').replace('06 ', '').replace('07 ', '')
+                plt.title(f'{book_short} - Neologisms Word Cloud\n({len(book_neologisms[book])} unique neologisms)',
+                          fontsize=16, fontweight='bold', pad=20)
+
+                if save_images:
+                    filename = f'wordcloud_{book_short.replace(" ", "_").replace("\'", "").lower()}.png'
+                    plt.savefig(filename, dpi=300, bbox_inches='tight')
+                    print(f"Saved: {filename}")
+                else:
+                    plt.show()
+
+        return True
+
+    except ImportError:
+        print("WordCloud library not installed. Install with: pip install wordcloud")
+        return False
+    except Exception as e:
+        print(f"Error creating word clouds: {e}")
+        return False
+
+
+def main():
+    """Main function to run analysis"""
+    print("Harry Potter Neologisms Analysis")
+    print("=" * 40)
 
     # Load data
     df = load_neologisms_data()
     if df is None:
         return
 
-    # Analyze first chapters
-    summary_data = analyze_first_chapters(df)
-    if not summary_data:
-        print("No first chapter data found")
-        return
+    print("\nChoose analysis type:")
+    print("1. Most creative chapters")
+    print("2. Word clouds (combined view)")
+    print("3. Word clouds (individual)")
 
-    # Display analysis
-    display_first_chapters_analysis(summary_data)
+    choice = input("Enter choice (1/2/3): ").strip()
 
-    # Create visualizations
-    create_first_chapters_plot(summary_data)
-    create_frequency_comparison_plot(summary_data)
+    if choice == '1':
+        # Your existing creative chapters code
+        creative_chapters = find_most_creative_chapters(df)
+        # ... rest of creative chapters analysis
 
-    # Find most creative chapters
-    creative_chapters = find_most_creative_chapters(df)
-    if not creative_chapters:
-        print("No chapter data found")
-        return
+    elif choice == '2':
+        create_wordclouds_by_book(df, save_images=False)
 
-    # Display analysis
-    print("\nMost Creative Chapter per Book:")
-    print("=" * 40)
+    elif choice == '3':
+        create_individual_wordclouds(df, save_images=False)
 
-    for book, data in creative_chapters.items():
-        book_short = book.replace('Harry Potter And The ', '')
-        print(f"\n{book_short}:")
-        print(f"  • Chapter {data['chapter']}: {data['count']} new neologisms")
-        print(f"  • Total frequency: {data['total_frequency']} occurrences")
-        print(f"  • Top neologisms: {', '.join([n['neologism'] for n in data['neologisms'][:5]])}")
-
-    # Create visualization
-    create_creative_chapters_plot(creative_chapters)
-
-def main2():
-    """Main function to run second chapters analysis"""
+    else:
+        print("Invalid choice")
 
 if __name__ == "__main__":
-    main1()
-
-    main2()
+    main()

@@ -8,8 +8,8 @@ def main():
     first_book_chapters = get_chapters(hp_books[books_names[0]])
     print("Books Loaded")
 
-    dialogue_path = get_dialogues_dataset()
-    print("Dialogue Dataset Loaded")
+    # dialogue_path = get_dialogues_dataset()
+    # print("Dialogue Dataset Loaded")
 
     characters_path = get_characters_datasets()
     print("Characters Dataset Loaded")

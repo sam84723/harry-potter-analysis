@@ -256,7 +256,7 @@ if __name__ == "__main__":
 
     # ------------------------ Dataset cleaning and frequency retrieval --------------------------------
 
-    # results, df_comparison = run_word_analysis(books, 50)
+    # results, df_comparison = run_word_analysis(books, 500)
 
     # # Optional: save the results
     # df_comparison.to_csv('harry_potter_word_analysis.csv', index=False)
@@ -264,6 +264,7 @@ if __name__ == "__main__":
 
     # ----------------------- Finding frequency per words --------------------------------------
 
-    find_frequency_of_the_word("harry", books)
-    find_frequency_of_the_word("voldemort", books)
+    # find_frequency_of_the_word("harry", books)
+    # find_frequency_of_the_word("voldemort", books)
     # find_frequency_of_the_word("lord voldemort", books)
+    find_frequency_of_the_word("dumbledore", books)
