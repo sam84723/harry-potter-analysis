@@ -141,11 +141,21 @@ ALIASES = [
     ("the boy who lived", "harry"),
     ("the chosen one", "harry"),
 
+    # Ron Weasley
+    ("ron weasley", "ron"),
+    ("weasley", "ron"),
+
+    # Hermione Granger
+    ("hermione granger", "hermione"),
+    ("granger", "hermione"),
+
     # Albus Dumbledore
     ("albus dumbledore", "dumbledore"),
     ("professor dumbledore", "dumbledore"),
     ("headmaster", "dumbledore"),
     ("albus", "dumbledore"),
+
+
 
     # Severus Snape
     ("severus snape", "snape"),
