@@ -21,4 +21,25 @@ from .scoring import (
     generate_kernel_edges_csv,
 )
 
+from .static_graphs import (
+    plot_kernel_graph,
+    plot_npmi_graph,
+)
+
+from .animation import (
+    create_network_animation,
+)
+
+from .graph_analysis import (
+    community_spring_layout,
+    detect_communities,
+    analyze_communities,
+    calculate_network_metrics,
+    print_community_analysis,
+    print_network_metrics,
+    create_community_visualization,
+    create_publication_community_visualization,
+    create_community_summary_table,
+)
+
 
