@@ -306,7 +306,7 @@ class NeologismVisualizer:
             print("WordCloud library not installed. Install with: pip install wordcloud")
 
 
-# Fonction à ajouter dans run_comprehensive_analysis
+# Function to add in run_comprehensive_analysis
 def create_essential_visualizations(comprehensive_df, analysis_data, file_manager):
     """Create the 4 essential visualizations"""
     print("here")

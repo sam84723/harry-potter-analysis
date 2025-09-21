@@ -87,15 +87,12 @@ def clean_and_extract_words(text: str, word_fusions: Dict[str, str] = None) -> L
     """Cleans text and extracts words with pre-fusion and contraction handling"""
     text = text.lower()
 
-    # NOUVEAU : Fusion de mots AVANT le découpage
     if word_fusions:
         for pattern, replacement in word_fusions.items():
             text = text.replace(pattern, replacement)
 
-    # Handle contractions (code existant)
     contractions = {
         "don't": "do not", "won't": "will not", "can't": "cannot",
-        # ... reste du code existant
     }
 
     for contraction, expansion in contractions.items():
@@ -294,7 +291,7 @@ class NeologismDetector:
 
         for book_file, book_text in books.items():
             book_name = book_file.replace('.txt', '').replace('_', ' ').title()
-            # UTILISER la fusion ici
+            # USE fusion here
             words = clean_and_extract_words(book_text, word_fusions)
             book_words[book_name] = words
             all_words.extend(words)

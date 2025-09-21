@@ -508,9 +508,7 @@ def main():
     choice = input("Enter choice (1/2/3): ").strip()
 
     if choice == '1':
-        # Your existing creative chapters code
         creative_chapters = find_most_creative_chapters(df)
-        # ... rest of creative chapters analysis
 
     elif choice == '2':
         create_wordclouds_by_book(df, save_images=False)

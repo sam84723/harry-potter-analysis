@@ -416,21 +416,21 @@ class ManagedCompoundCombiner:
                 choice = input("Combine? (y/n): ")
 
                 if choice.lower() == 'y':
-                    # CORRECTION : Utiliser la fréquence du composant le plus fréquent
-                    # (plutôt que minimum, car c'est plus représentatif)
+                    # CORRECTION: Use the frequency of the most frequent component
+                    # (rather than minimum, as it's more representative)
                     compound_freq = max(found_components.values())
 
-                    # Supprimer les composants individuels
+                    # Remove individual components
                     for comp in components:
                         if comp in combined:
                             del combined[comp]
 
-                    # Ajouter le compound avec la fréquence préservée
+                    # Add the compound with preserved frequency
                     combined[compound_name] = compound_freq
                     created.append(compound_name)
                     print(f"Created: {compound_name} ({compound_freq} occurrences)")
 
-        # Création interactive
+        # Interactive creation
         print(f"\nAvailable neologisms for new compounds:")
         sorted_neo = sorted(combined.items(), key=lambda x: x[1], reverse=True)
         for i, (word, count) in enumerate(sorted_neo[:20], 1):
@@ -455,7 +455,7 @@ class ManagedCompoundCombiner:
 
             compound_name = ' '.join(components)
 
-            # CORRECTION : Préserver la meilleure information
+            # CORRECTION: Preserve the best information
             max_freq = max(found_components.values())
             best_component = max(found_components.keys(), key=lambda x: found_components[x])
 
@@ -467,12 +467,12 @@ class ManagedCompoundCombiner:
             confirm = input(f"Confirm creation? (y/n): ")
 
             if confirm.lower() == 'y':
-                # Supprimer les composants
+                # Remove the components
                 for comp in components:
                     if comp in combined:
                         del combined[comp]
 
-                # Ajouter le compound avec les meilleures informations
+                # Add the compound with the best information
                 combined[compound_name] = max_freq
                 self.compounds[compound_name] = components
                 created.append(compound_name)
@@ -541,25 +541,25 @@ def run_comprehensive_analysis(books: Dict[str, str], get_chapters_func,
     similarity_matcher = ManagedSimilarityMatcher(file_manager)
     merged = similarity_matcher.merge_similar_neologisms(filtered)
 
-    # Calculer les informations détaillées
+    # Calculate detailed information
     print("\nCalculating detailed information...")
     book_analyzer = BookAnalyzer()
     pre_compound_df, pre_compound_analysis = book_analyzer.create_comprehensive_dataset(
         books, get_chapters_func, merged
     )
 
-    # COMPOUNDS DÉSACTIVÉS - pas de combinaison
+    # COMPOUNDS DISABLED - no combination
     final_neologisms = merged
-    compound_mapping = {}  # Vide car pas de compounds
+    compound_mapping = {}  # Empty because no compounds
 
-    # Pas besoin de create_final_dataset_with_preserved_info()
-    # car pas de compounds à préserver
-    final_df = pre_compound_df  # Utiliser directement le dataset calculé
+    # No need for create_final_dataset_with_preserved_info()
+    # because no compounds to preserve
+    final_df = pre_compound_df  # Use the calculated dataset directly
 
-    # Pas besoin de recalculer l'analyse
+    # No need to recalculate the analysis
     final_analysis_data = pre_compound_analysis
     if save_results:
-        # Créer les visualisations essentielles
+        # Create essential visualizations
         create_essential_visualizations(final_df, final_analysis_data, file_manager)
 
 
@@ -574,10 +574,10 @@ def create_final_dataset_with_preserved_info(final_neologisms: Dict[str, int],
 
     for neologism, frequency in final_neologisms.items():
         if neologism in compound_mapping:
-            # C'est un compound - utiliser les infos du composant principal
+            # It's a compound - use the main component's information
             components = compound_mapping[neologism]
 
-            # Trouver le composant avec le plus d'infos/fréquence
+            # Find the component with the most info/frequency
             component_data = []
             for comp in components:
                 comp_row = original_df[original_df['neologism'] == comp]
@@ -585,32 +585,32 @@ def create_final_dataset_with_preserved_info(final_neologisms: Dict[str, int],
                     component_data.append(comp_row.iloc[0])
 
             if component_data:
-                # Utiliser les données du composant le plus fréquent
+                # Use the most frequent component's data
                 best_component = max(component_data, key=lambda x: x['total_frequency'])
 
-                # Créer la ligne du compound en préservant les infos du meilleur composant
+                # Create the compound row while preserving the best component's info
                 row = best_component.to_dict()
                 row['neologism'] = neologism
                 row['total_frequency'] = frequency
 
-                # Combiner les fréquences par livre des composants
+                # Combine the components' frequencies by book
                 for col in row.keys():
                     if col.startswith('freq_'):
-                        # Additionner les fréquences de tous les composants pour ce livre
+                        # Add up the frequencies of all components for this book
                         combined_freq = sum(
                             comp_data.get(col, 0) for comp_data in
                             [comp.to_dict() for comp in component_data]
                         )
                         row[col] = combined_freq
 
-                # Recalculer les statistiques
+                # Recalculate the statistics
                 book_freqs = [row[col] for col in row.keys() if col.startswith('freq_')]
                 row['books_present_in'] = sum(1 for f in book_freqs if f > 0)
                 row['max_freq_per_book'] = max(book_freqs) if book_freqs else 0
 
                 final_rows.append(row)
         else:
-            # Néologisme simple - copier depuis l'original
+            # Simple neologism - copy from original
             original_row = original_df[original_df['neologism'] == neologism]
             if not original_row.empty:
                 final_rows.append(original_row.iloc[0].to_dict())
@@ -619,7 +619,7 @@ def create_final_dataset_with_preserved_info(final_neologisms: Dict[str, int],
     return final_df.sort_values('total_frequency', ascending=False).reset_index(drop=True)
 
 
-# Nouvelle méthode pour ManagedCompoundCombiner
+# New method for ManagedCompoundCombiner
 def combine_compounds_with_info_preservation(self, neologisms: Dict[str, int],
                                              detailed_df: pd.DataFrame) -> Tuple[Dict[str, int], Dict[str, List[str]]]:
     """Combine compounds while tracking which components were merged"""
@@ -635,7 +635,7 @@ def combine_compounds_with_info_preservation(self, neologisms: Dict[str, int],
         if found_components:
             print(f"\nFound compound '{compound_name}': {list(found_components.keys())}")
 
-            # Montrer les infos détaillées des composants
+            # Show detailed component information
             print("Component details:")
             for comp in found_components.keys():
                 comp_row = detailed_df[detailed_df['neologism'] == comp]
@@ -648,21 +648,21 @@ def combine_compounds_with_info_preservation(self, neologisms: Dict[str, int],
             choice = input("Combine? (y/n): ")
 
             if choice.lower() == 'y':
-                # Utiliser la fréquence du composant principal
+                # Use the main component's frequency
                 compound_freq = max(found_components.values())
 
-                # Supprimer les composants individuels
+                # Remove individual components
                 for comp in components:
                     if comp in combined:
                         del combined[comp]
 
-                # Ajouter le compound
+                # Add the compound
                 combined[compound_name] = compound_freq
                 compound_mapping[compound_name] = components
                 created.append(compound_name)
                 print(f"Created: {compound_name} ({compound_freq} occurrences, preserved component info)")
 
-    # Création interactive avec infos détaillées
+    # Interactive creation with detailed info
     print(f"\nAvailable neologisms for new compounds:")
     sorted_neo = sorted(combined.items(), key=lambda x: x[1], reverse=True)
     for i, (word, count) in enumerate(sorted_neo[:20], 1):
@@ -709,12 +709,12 @@ def combine_compounds_with_info_preservation(self, neologisms: Dict[str, int],
         confirm = input(f"Confirm creation? (y/n): ")
 
         if confirm.lower() == 'y':
-            # Supprimer les composants
+            # Remove the components
             for comp in components:
                 if comp in combined:
                     del combined[comp]
 
-            # Ajouter le compound
+            # Add the compound
             combined[compound_name] = max_freq
             compound_mapping[compound_name] = components
             self.compounds[compound_name] = components
